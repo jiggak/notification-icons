@@ -22,88 +22,142 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-let topbarNotification;
-let dateMenu = Main.panel.statusArea.dateMenu;
-let rightSideValue;
-let coloredIconsValue;
-
-
-export default class topbarNotificationIcons extends Extension {
+export default class TopbarNotificationIcons extends Extension {
    enable() {
+      console.debug('TopbarNotificationIcons.enable()');
 
-      this._settings = this.getSettings();
-      rightSideValue = this._settings.get_boolean('right-side');
-      this._settings.connect('changed::right-side', () => {
-         rightSideValue = this._settings.get_boolean('right-side');
+      const settings = this.getSettings();
+
+      let rightSide = settings.get_boolean('right-side');
+      settings.connect('changed::right-side', () => {
+         rightSide = settings.get_boolean('right-side');
          this.disable();
          this.enable();
       });
 
-      coloredIconsValue = this._settings.get_boolean('colored-icons');
-      this._settings.connect('changed::colored-icons', () => {
-         coloredIconsValue = this._settings.get_boolean('colored-icons');
+      let coloredIcons = settings.get_boolean('colored-icons');
+      settings.connect('changed::colored-icons', () => {
+         coloredIcons = settings.get_boolean('colored-icons');
          this.disable();
          this.enable();
       });
-      topbarNotification = new TopbarNotification();
 
-      if (rightSideValue) {
-         dateMenu.get_first_child().insert_child_above(topbarNotification, dateMenu._clockDisplay);
+      this.topbarNotification = new TopbarNotification(coloredIcons);
+
+      const dateMenu = Main.panel.statusArea.dateMenu;
+
+      if (rightSide) {
+         dateMenu.get_first_child().insert_child_above(this.topbarNotification, dateMenu._clockDisplay);
       } else {
-         dateMenu.get_first_child().insert_child_below(topbarNotification, dateMenu._clockDisplay);
+         dateMenu.get_first_child().insert_child_below(this.topbarNotification, dateMenu._clockDisplay);
       }
    }
 
    disable() {
-      topbarNotification._destroy();
-      topbarNotification = null;
-      this._settings = null;
-      rightSideValue =  null;
-      coloredIconsValue = null;
+      console.debug('TopbarNotificationIcons.disable()');
+      this.topbarNotification._destroy();
+      this.topbarNotification = null;
+   }
+}
+
+class NotifySource {
+   constructor(source, coloredIcons) {
+      this._source = source;
+      this._signal = source.connect('notify::count', this._updateCount.bind(this));
+
+      const icon = new St.Icon({
+         icon_name: source._policy.id,
+         icon_size: 18,
+         style_class: 'topbar-notification-icon',
+      });
+
+      if (!coloredIcons) {
+         icon.add_style_class_name('app-menu-icon');
+         icon.add_effect(new Clutter.DesaturateEffect());
+      }
+
+      this._label = new St.Label({
+         style_class: 'notification-count',
+         text: this.getCount()
+      });
+
+      this.widget = new St.Widget({
+         layout_manager: new Clutter.BinLayout()
+      });
+      this.widget.add_child(icon);
+      this.widget.add_child(this._label);
+   }
+
+   get id() {
+      return this._source._policy.id;
+   }
+
+   getCount() {
+      const count = this._source.notifications? this._source.notifications.length : 0;
+      return count.toString();
+   }
+
+   _updateCount() {
+      console.log('onNotifyCount');
+      this._label.text = this.getCount();
+   }
+
+   destroy() {
+      this._source.disconnect(this._signal);
    }
 }
 
 const TopbarNotification = GObject.registerClass(
    class TopbarNotification extends St.BoxLayout {
-      _init() {
+      _init(coloredIcons) {
          super._init({
             y_align: Clutter.ActorAlign.CENTER,
             x_align: Clutter.ActorAlign.CENTER,
             visible: true
          });
 
-         this.signals = [
-            Main.messageTray.connect('source-added', this._onSourceAdded.bind(this)),
-            Main.messageTray.connect('source-removed', this._updateAllSources.bind(this)),
-         ];
-         this._updateAllSources(this);
-      }
-      _onSourceAdded(tray, source) {
-         if (source._policy.id != 'generic') {
-            if (this.get_children().findIndex(child => child.icon_name == source._policy.id) == -1) {
-               let _icon = new St.Icon({
-                  icon_name: source._policy.id,
-                  icon_size: 18,
-                  style_class: 'topbar-notification-icon',
-               });
-               if (!coloredIconsValue) {
-                  _icon.add_style_class_name('app-menu-icon');
-                  _icon.add_effect(new Clutter.DesaturateEffect());
-               }
-               this.add_child(_icon);
+         this.coloredIcons = coloredIcons;
+         this._sources = [];
 
-            }
-         }
-      }
-      _updateAllSources() {
-         this.remove_all_children();
+         this._signals = [
+            Main.messageTray.connect('source-added', this._onSourceAdded.bind(this)),
+            Main.messageTray.connect('source-removed', this._onSourceRemoved.bind(this)),
+         ];
+
          Main.messageTray.getSources().forEach(source => this._onSourceAdded(null, source));
       }
 
+      getSource(id) {
+         return this._sources.find(s => s.id == id);
+      }
+
+      hasSource(id) {
+         return !!this.getSource(id);
+      }
+
+      _onSourceAdded(tray, source) {
+         console.debug('onSourceAdded source =', source._policy);
+         if (source._policy.id != 'generic') {
+            if (!this.hasSource(source._policy.id)) {
+               const notifySource = new NotifySource(source, this.coloredIcons);
+               this._sources.push(notifySource);
+               this.add_child(notifySource.widget);
+            }
+         }
+      }
+
+      _onSourceRemoved(tray, source) {
+         console.debug('onSourceRemoved source =', source._policy);
+         const notifySource = this.getSource(source._policy.id);
+         if (notifySource) {
+            this.remove_child(notifySource.widget);
+            notifySource.destroy();
+            this._sources.splice(this._sources.indexOf(notifySource), 1);
+         }
+      }
+
       _destroy() {
-         this.signals.forEach(signal => {
-            Main.messageTray.disconnect(signal);
-         });
+         this._signals.forEach(signal => Main.messageTray.disconnect(signal));
          this.destroy();
       }
    }
