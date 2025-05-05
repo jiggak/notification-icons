@@ -33,17 +33,17 @@ export default class ExamplePreferences extends ExtensionPreferences {
     });
     group.add(row2);
 
-    const options = new Gtk.StringList();
-    options.append(_("Always"));
-    options.append(_("Urgent"));
-    options.append(_("Never"));
+    // const options = new Gtk.StringList();
+    // options.append(_("Always"));
+    // options.append(_("Urgent"));
+    // options.append(_("Never"));
 
-    const comboRow = new Adw.ComboRow({
-      title: _("DND Mode"),
-      subtitle: _("Show icons when do no disturb is on"),
-      model: options,
-    });
-    group.add(comboRow);
+    // const comboRow = new Adw.ComboRow({
+    //   title: _("DND Mode"),
+    //   subtitle: _("Show icons when do no disturb is on"),
+    //   model: options,
+    // });
+    // group.add(comboRow);
 
     window._settings = this.getSettings();
     window._settings.bind(
@@ -58,11 +58,11 @@ export default class ExamplePreferences extends ExtensionPreferences {
       "active",
       Gio.SettingsBindFlags.DEFAULT
     );
-    window._settings.bind(
-      "dnd-mode",
-      comboRow,
-      "selected",
-      Gio.SettingsBindFlags.DEFAULT
-    );
+    // window._settings.bind(
+    //   "dnd-mode",
+    //   comboRow,
+    //   "selected",
+    //   Gio.SettingsBindFlags.DEFAULT
+    // );
   }
 }
