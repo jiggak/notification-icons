@@ -1,5 +1,4 @@
-/* extension.js
- *
+/*
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 2 of the License, or
@@ -16,28 +15,34 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+
+function log(...args) {
+   console.log(...args);
+}
 
 export default class TopbarNotificationIcons extends Extension {
    enable() {
-      console.debug('TopbarNotificationIcons.enable()');
+      log('TopbarNotificationIcons.enable()');
 
-      const settings = this.getSettings();
+      this._settings = this.getSettings();
 
-      let rightSide = settings.get_boolean('right-side');
-      settings.connect('changed::right-side', () => {
-         rightSide = settings.get_boolean('right-side');
+      let rightSide = this._settings.get_boolean('right-side');
+      this._settings.connect('changed::right-side', () => {
+         rightSide = this._settings.get_boolean('right-side');
+         log('rightSide setting changed', rightSide);
          this.disable();
          this.enable();
       });
 
-      let coloredIcons = settings.get_boolean('colored-icons');
-      settings.connect('changed::colored-icons', () => {
-         coloredIcons = settings.get_boolean('colored-icons');
+      let coloredIcons = this._settings.get_boolean('colored-icons');
+      this._settings.connect('changed::colored-icons', () => {
+         coloredIcons = this._settings.get_boolean('colored-icons');
+         log('coloredIcons setting changed', coloredIcons);
          this.disable();
          this.enable();
       });
@@ -54,9 +59,10 @@ export default class TopbarNotificationIcons extends Extension {
    }
 
    disable() {
-      console.debug('TopbarNotificationIcons.disable()');
+      log('TopbarNotificationIcons.disable()');
       this.topbarNotification._destroy();
       this.topbarNotification = null;
+      this._settings = null;
    }
 }
 
@@ -98,7 +104,7 @@ class NotifySource {
    }
 
    _updateCount() {
-      console.log('onNotifyCount');
+      log('onNotifyCount');
       this._label.text = this.getCount();
    }
 
@@ -136,7 +142,7 @@ const TopbarNotification = GObject.registerClass(
       }
 
       _onSourceAdded(tray, source) {
-         console.debug('onSourceAdded source =', source._policy);
+         log('onSourceAdded source =', source._policy);
          if (source._policy.id != 'generic') {
             if (!this.hasSource(source._policy.id)) {
                const notifySource = new NotifySource(source, this.coloredIcons);
@@ -147,7 +153,7 @@ const TopbarNotification = GObject.registerClass(
       }
 
       _onSourceRemoved(tray, source) {
-         console.debug('onSourceRemoved source =', source._policy);
+         log('onSourceRemoved source =', source._policy);
          const notifySource = this.getSource(source._policy.id);
          if (notifySource) {
             this.remove_child(notifySource.widget);
