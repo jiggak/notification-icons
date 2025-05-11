@@ -1,7 +1,7 @@
 {
   "name": "Top Panel Notification Icons /w Count",
   "description": "Displays notifications icon in top panel",
-  "uuid": "notification-icons@jiggak.github",
+  "uuid": "notification-icons@jiggak.io",
   "url": "https://github.com/jiggak/notification-icons",
   "settings-schema": "org.gnome.shell.extensions.notification-icons",
   "shell-version": [

@@ -1,0 +1,25 @@
+{
+   "name": "notification-icons",
+   "version": "1.0.0",
+   "description": "Displays notifications icon with count badge in top panel of Gnome ",
+   "type": "module",
+   "private": true,
+   "repository": {
+      "type": "git",
+      "url": "git+https://github.com/jiggak/notification-icons.git"
+   },
+   "author": "Josh Kropf <josh@slashdev.ca>",
+   "license": "LGPL-3.0-or-later",
+   "bugs": {
+      "url": "https://github.com/jiggak/notification-icons/issues"
+   },
+   "homepage": "https://github.com/jiggak/notification-icons",
+   "sideEffects": false,
+   "dependencies": {
+      "@girs/gjs": "^4.0.0-beta.23",
+      "@girs/gnome-shell": "^48.0.2"
+   },
+   "devDependencies": {
+      "typescript": "^5.8.3"
+   }
+}

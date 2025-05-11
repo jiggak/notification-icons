@@ -24,7 +24,9 @@ import {
 } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 export default class NotificationIconsPrefs extends ExtensionPreferences {
-   fillPreferencesWindow(window) {
+   _settings?: Gio.Settings;
+
+   fillPreferencesWindow(window: Adw.PreferencesWindow): Promise<void> {
       const page = new Adw.PreferencesPage({
          title: _('General'),
          icon_name: 'dialog-information-symbolic',
@@ -49,36 +51,20 @@ export default class NotificationIconsPrefs extends ExtensionPreferences {
       });
       group.add(row2);
 
-      // const options = new Gtk.StringList();
-      // options.append(_('Always'));
-      // options.append(_('Urgent'));
-      // options.append(_('Never'));
-
-      // const comboRow = new Adw.ComboRow({
-      //   title: _('DND Mode'),
-      //   subtitle: _('Show icons when do no disturb is on'),
-      //   model: options,
-      // });
-      // group.add(comboRow);
-
-      window._settings = this.getSettings();
-      window._settings.bind(
+      this._settings = this.getSettings();
+      this._settings.bind(
          'right-side',
          row,
          'active',
          Gio.SettingsBindFlags.DEFAULT
       );
-      window._settings.bind(
+      this._settings.bind(
          'colored-icons',
          row2,
          'active',
          Gio.SettingsBindFlags.DEFAULT
       );
-      // window._settings.bind(
-      //   'dnd-mode',
-      //   comboRow,
-      //   'selected',
-      //   Gio.SettingsBindFlags.DEFAULT
-      // );
+
+      return Promise.resolve();
    }
 }
