@@ -24,8 +24,6 @@ import {
 } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 export default class NotificationIconsPrefs extends ExtensionPreferences {
-   _settings?: Gio.Settings;
-
    fillPreferencesWindow(window: Adw.PreferencesWindow): Promise<void> {
       const page = new Adw.PreferencesPage({
          title: _('General'),
@@ -51,14 +49,15 @@ export default class NotificationIconsPrefs extends ExtensionPreferences {
       });
       group.add(row2);
 
-      this._settings = this.getSettings();
-      this._settings.bind(
+      const settings = this.getSettings();
+
+      settings.bind(
          'right-side',
          row,
          'active',
          Gio.SettingsBindFlags.DEFAULT
       );
-      this._settings.bind(
+      settings.bind(
          'colored-icons',
          row2,
          'active',
