@@ -31,6 +31,7 @@ function log(...args: any[]) {
 export default class TopbarNotificationIcons extends Extension {
    _settings?: Gio.Settings;
    _topbarNotification?: TopbarNotification;
+   _signals?: number[];
 
    enable() {
       log('TopbarNotificationIcons.enable()');
@@ -46,8 +47,10 @@ export default class TopbarNotificationIcons extends Extension {
          this.enable();
       }
 
-      this._settings.connect('changed::right-side', onSettingChanged);
-      this._settings.connect('changed::colored-icons', onSettingChanged);
+      this._signals = [
+         this._settings.connect('changed::right-side', onSettingChanged),
+         this._settings.connect('changed::colored-icons', onSettingChanged),
+      ];
 
       this._topbarNotification = new TopbarNotification(coloredIcons);
 
@@ -63,8 +66,10 @@ export default class TopbarNotificationIcons extends Extension {
 
    disable() {
       log('TopbarNotificationIcons.disable()');
-      this._topbarNotification?._destroy();
+      this._topbarNotification?.destroy();
       this._topbarNotification = undefined;
+      this._signals?.forEach(signal => this._settings?.disconnect(signal));
+      this._signals = undefined;
       this._settings = undefined;
    }
 }
@@ -80,7 +85,6 @@ function getPolicyId(source: Source) {
 class NotifySource {
    private _source: Source;
    private _signal: number;
-   private _label: St.Label;
    readonly widget: St.Widget;
 
    constructor(source: Source, coloredIcons: boolean) {
@@ -98,7 +102,7 @@ class NotifySource {
          icon.add_effect(new Clutter.DesaturateEffect());
       }
 
-      this._label = new St.Label({
+      const label = new St.Label({
          style_class: 'notification-count',
          text: this.getCount()
       });
@@ -107,11 +111,15 @@ class NotifySource {
          layout_manager: new Clutter.BinLayout()
       });
       this.widget.add_child(icon);
-      this.widget.add_child(this._label);
+      this.widget.add_child(label);
    }
 
    get id() {
       return getPolicyId(this._source);
+   }
+
+   get label() {
+      return this.widget.get_child_at_index(1) as St.Label;
    }
 
    getCount() {
@@ -121,11 +129,12 @@ class NotifySource {
 
    private _updateCount() {
       log('onNotifyCount');
-      this._label.text = this.getCount();
+      this.label.text = this.getCount();
    }
 
    destroy() {
       this._source.disconnect(this._signal);
+      this.widget.destroy();
    }
 }
 
@@ -180,9 +189,9 @@ class TopbarNotification extends St.BoxLayout {
       }
    }
 
-   _destroy() {
+   destroy() {
       this._signals.forEach(signal => Main.messageTray.disconnect(signal));
-      this.destroy();
+      super.destroy();
    }
 }
 
